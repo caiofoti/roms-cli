@@ -1,6 +1,14 @@
 import zipfile
 
-from src.utils import clean_rom_title, extract_archive, extract_nations, extract_zip
+import py7zr
+
+from src.utils import (
+    clean_rom_title,
+    extract_7z,
+    extract_archive,
+    extract_nations,
+    extract_zip,
+)
 
 
 def test_clean_rom_title_strips_region_and_revision_tags():
@@ -52,6 +60,41 @@ def test_extract_zip_extracts_and_deletes_archive(tmp_path):
     assert ok is True
     assert not zip_path.exists()
     assert (extract_to / "game.gb").read_bytes() == b"fake rom data"
+
+
+def test_extract_7z_extracts_and_deletes_archive(tmp_path):
+    src_file = tmp_path / "rom.gb"
+    src_file.write_bytes(b"fake rom data")
+    archive_path = tmp_path / "game.7z"
+    with py7zr.SevenZipFile(str(archive_path), "w") as z:
+        z.write(str(src_file), "rom.gb")
+    src_file.unlink()
+
+    extract_to = tmp_path / "extracted"
+    extract_to.mkdir()
+
+    ok = extract_7z(str(archive_path), str(extract_to))
+
+    assert ok is True
+    assert not archive_path.exists()
+    assert (extract_to / "rom.gb").read_bytes() == b"fake rom data"
+
+
+def test_extract_7z_rejects_path_traversal(tmp_path):
+    src_file = tmp_path / "evil.txt"
+    src_file.write_bytes(b"pwned")
+    archive_path = tmp_path / "evil.7z"
+    with py7zr.SevenZipFile(str(archive_path), "w") as z:
+        z.write(str(src_file), "../../evil.txt")
+    src_file.unlink()
+
+    extract_to = tmp_path / "extracted"
+    extract_to.mkdir()
+
+    ok = extract_7z(str(archive_path), str(extract_to))
+
+    assert ok is False
+    assert not (tmp_path / "evil.txt").exists()
 
 
 def test_extract_archive_passthrough_for_non_archive_extension(tmp_path):

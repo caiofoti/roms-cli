@@ -115,6 +115,13 @@ pip install -r requirements.txt
 pytest
 ```
 
+## Aviso legal
+
+Este projeto só automatiza busca e download de arquivos publicamente
+indexados no archive.org — não hospeda, distribui nem modifica ROMs. A
+legalidade de baixar ROMs de jogos que você não possui varia por país; a
+responsabilidade de verificar isso é de quem usa a ferramenta.
+
 ## Licença
 
 MIT — ver [LICENSE](LICENSE).
