@@ -60,6 +60,11 @@ RAWG_API_KEY=sua_chave_aqui
 
 O app avisa na tela inicial e em `/config` se algo não estiver configurado.
 
+Instalou via pipx e não tem um `.env` num diretório fixo pra rodar de dentro
+dele? O app também lê `.env` da pasta de configuração padrão do seu SO (a
+mesma onde fica `settings.json`) — copie o `.env` pra lá se for rodar
+`roms-downloader` de qualquer lugar.
+
 ## Uso
 
 Sem argumentos abre o **chat interativo**:

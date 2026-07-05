@@ -273,12 +273,13 @@ def fetch_top_rated_titles(console_name, limit=30):
     """Busca os jogos mais bem avaliados (RAWG) pra uma plataforma. Retorna
     [{"name": ..., "rating_100": ...}], só os que têm nota real (metacritic ou
     nota de usuário), ordenados por nota desc."""
+    api_client = get_api_client()
     platform_id = RAWG_PLATFORM_MAP.get(console_name)
-    if not platform_id or not game_api_client_instance.rawg_api_key:
+    if not platform_id or not api_client.rawg_api_key:
         return []
 
     params = {
-        "key": game_api_client_instance.rawg_api_key,
+        "key": api_client.rawg_api_key,
         "platforms": platform_id,
         "ordering": "-metacritic",
         "page_size": limit,
@@ -307,7 +308,18 @@ def fetch_top_rated_titles(console_name, limit=30):
     return titles
 
 
-game_api_client_instance = GameApiClient()
+_game_api_client_instance = None
+
+
+def get_api_client():
+    """Instancia o cliente na primeira chamada real (não no import do módulo).
+    RAWG_API_KEY é lida do ambiente só nesse momento — importar scraping.py
+    antes do .env ser carregado (ex: entry point instalado via pip/pipx, que
+    não passa por run.py) não trava mais a chave como 'ausente' pra sempre."""
+    global _game_api_client_instance
+    if _game_api_client_instance is None:
+        _game_api_client_instance = GameApiClient()
+    return _game_api_client_instance
 
 
 def fetch_game_details(original_filename, console_name):
@@ -356,7 +368,7 @@ def fetch_game_details(original_filename, console_name):
         logging.debug(
             f"[API Fetch] Tentativa RAWG com '{attempt_title}' (Console: {console_name})..."
         )
-        rawg_details = game_api_client_instance.search_rawg(attempt_title, console_name)
+        rawg_details = get_api_client().search_rawg(attempt_title, console_name)
         if rawg_details:
             api_title = rawg_details.get("api_title", "")
             similarity_score = fuzz.token_set_ratio(

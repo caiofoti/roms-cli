@@ -1,12 +1,25 @@
 import argparse
+import os
 
-from src.config import CONSOLES_ARCHIVE, set_roms_root
+from dotenv import load_dotenv
+
+from src.config import CONSOLES_ARCHIVE, USER_CONFIG_DIR, set_roms_root
 from src.display import console
 from src.downloader import clean_partial_downloads
 from src.repl import run_chat, run_direct
 
 
+def _load_env():
+    """Carrega .env do diretório atual (uso via clone do repo/dev) e, como
+    complemento, de uma pasta estável de config — útil pra quem instalou via
+    pip/pipx e roda `roms-downloader` de qualquer lugar, sem repo local."""
+    load_dotenv()
+    load_dotenv(os.path.join(USER_CONFIG_DIR, ".env"))
+
+
 def main():
+    _load_env()
+
     parser = argparse.ArgumentParser(
         prog="roms-downloader",
         description="Busca e baixa ROMs por console, com verificação de integridade.",
