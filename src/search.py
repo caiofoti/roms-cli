@@ -4,13 +4,13 @@ from thefuzz import fuzz
 from src import config
 from src.config import CONSOLES_ARCHIVE
 
-CONSOLE_ALIASES = {folder.lower(): name for name, (folder, _ids) in CONSOLES_ARCHIVE.items()}
+CONSOLE_ALIASES = {
+    folder.lower(): name for name, (folder, _ids) in CONSOLES_ARCHIVE.items()
+}
 
 
 def pick_console():
-    return questionary.select(
-        "Console:", choices=sorted(CONSOLES_ARCHIVE.keys())
-    ).ask()
+    return questionary.select("Console:", choices=sorted(CONSOLES_ARCHIVE.keys())).ask()
 
 
 def resolve_console_name(partial):
@@ -37,7 +37,8 @@ def _match_score(query, name):
 
 def search_games(games, query, limit=None):
     """Retorna (resultados_limitados, total_de_matches), ordenados por
-    relevância (score desc) e, em empate, por tamanho do nome (mais curto/direto primeiro)."""
+    relevância (score desc) e, em empate, por tamanho do nome (mais curto/direto primeiro).
+    """
     limit = limit or config.DEFAULT_RESULT_LIMIT
     if not query:
         ordered = sorted(games, key=lambda g: g["name"].lower())

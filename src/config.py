@@ -68,25 +68,28 @@ BASE_URL = "https://archive.org/download/"
 
 # Mapeamento: nome do console -> (pasta dentro de ROMS_ROOT, identificadores archive.org)
 CONSOLES_ARCHIVE = {
-    "Game Boy (GB)":              ("gb",          ["No-Intro_GB"]),
-    "Game Boy Color (GBC)":       ("gbc",         ["No-Intro_GBC"]),
-    "Game Boy Advance (GBA)":     ("gba",         ["ef_gba_no-intro_2024-02-21"]),
-    "Nintendo (NES/Famicom)":     ("nes",         ["No-Intro_NES"]),
-    "Super Nintendo (SNES)":      ("snes",        ["ef_nintendo_snes_no-intro_2024-04-20"]),
-    "Nintendo 64 (N64)":          ("n64",         ["ef_nintendo_64_no-intro_2024-02-10"]),
-    "Nintendo DS (NDS)":          ("nds",         ["ndsdecryptednointromyrientbackup"]),
-    "Sega Master System":         ("mastersystem", ["No-Intro_SMS"]),
-    "Sega Game Gear":             ("gamegear",    ["ef_sega_game_gear_no-intro_2024-02-21"]),
-    "Sega Genesis/Mega Drive":    ("megadrive",   ["ni-se-md"]),
-    "Sony PlayStation (PSX)":     ("psx",         ["RedumpSonyPlayStationAmerica20160617"]),
-    "Sony PlayStation 2 (PS2)":   ("ps2",         ["redump_ps2"]),
-    "Sega Dreamcast":             ("dreamcast",   ["sega-dreamcast-redump-collection"]),
-    "Sony PSP":                   ("psp",         [
-                                                    "sony_playstation_portable_part1",
-                                                    "sony_playstation_portable_part2",
-                                                    "sony_playstation_portable_part3",
-                                                    "sony_playstation_portable_part4",
-                                                  ]),
+    "Game Boy (GB)": ("gb", ["No-Intro_GB"]),
+    "Game Boy Color (GBC)": ("gbc", ["No-Intro_GBC"]),
+    "Game Boy Advance (GBA)": ("gba", ["ef_gba_no-intro_2024-02-21"]),
+    "Nintendo (NES/Famicom)": ("nes", ["No-Intro_NES"]),
+    "Super Nintendo (SNES)": ("snes", ["ef_nintendo_snes_no-intro_2024-04-20"]),
+    "Nintendo 64 (N64)": ("n64", ["ef_nintendo_64_no-intro_2024-02-10"]),
+    "Nintendo DS (NDS)": ("nds", ["ndsdecryptednointromyrientbackup"]),
+    "Sega Master System": ("mastersystem", ["No-Intro_SMS"]),
+    "Sega Game Gear": ("gamegear", ["ef_sega_game_gear_no-intro_2024-02-21"]),
+    "Sega Genesis/Mega Drive": ("megadrive", ["ni-se-md"]),
+    "Sony PlayStation (PSX)": ("psx", ["RedumpSonyPlayStationAmerica20160617"]),
+    "Sony PlayStation 2 (PS2)": ("ps2", ["redump_ps2"]),
+    "Sega Dreamcast": ("dreamcast", ["sega-dreamcast-redump-collection"]),
+    "Sony PSP": (
+        "psp",
+        [
+            "sony_playstation_portable_part1",
+            "sony_playstation_portable_part2",
+            "sony_playstation_portable_part3",
+            "sony_playstation_portable_part4",
+        ],
+    ),
 }
 
 # Compatibilidade com o resto do código (dropdown usa CONSOLES.keys())
@@ -157,3 +160,17 @@ def set_max_concurrent_downloads(value):
         raise ValueError("Downloads simultâneos deve ser entre 1 e 10.")
     MAX_CONCURRENT_DOWNLOADS = value
     settings.setValue("max_concurrent_downloads", MAX_CONCURRENT_DOWNLOADS)
+
+
+# 0 = desligado. Limpa a tela do chat sozinho a cada N ações (busca/download/
+# delete), pra não virar um scroll infinito em sessões longas.
+AUTO_CLEAR_AFTER = int(settings.value("auto_clear_after", 0))
+
+
+def set_auto_clear_after(value):
+    global AUTO_CLEAR_AFTER
+    value = int(value)
+    if value < 0:
+        raise ValueError("Auto-clear deve ser 0 (desligado) ou um número positivo.")
+    AUTO_CLEAR_AFTER = value
+    settings.setValue("auto_clear_after", AUTO_CLEAR_AFTER)

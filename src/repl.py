@@ -6,7 +6,7 @@ import questionary
 from src import config
 from src.config import CONSOLES_ARCHIVE, set_roms_root
 from src.display import console, pick_games, show_page, show_results
-from src.downloader import clean_partial_downloads, download_games
+from src.downloader import clean_partial_downloads, delete_game, download_games
 from src.scraping import get_games_for_console_cached
 from src.search import CONSOLE_ALIASES, pick_console, resolve_console_name, search_games
 
@@ -23,7 +23,9 @@ def _load_games(console_name):
 def run_direct(console_arg, query, limit, yes):
     console_name = resolve_console_name(console_arg)
     if console_name != console_arg:
-        console.print(f"[dim]Console mais próximo de '{console_arg}': {console_name}[/dim]")
+        console.print(
+            f"[dim]Console mais próximo de '{console_arg}': {console_name}[/dim]"
+        )
 
     with console.status(f"Carregando catálogo de {console_name}..."):
         games = get_games_for_console_cached(console_name)
@@ -94,7 +96,9 @@ def show_game_info(game, console_name):
         )
         return
 
-    console.print(f"\n[bold]{details['api_title']}[/bold]  [dim]({details['api_source']})[/dim]")
+    console.print(
+        f"\n[bold]{details['api_title']}[/bold]  [dim]({details['api_source']})[/dim]"
+    )
     if details.get("rating_100") is not None:
         console.print(f"Nota: {details['rating_100']}/100")
     if details.get("release_date"):
@@ -118,11 +122,13 @@ HELP_TEXT = """[bold]Comandos:[/bold]
   [cyan]/consoles[/cyan]          lista os aliases de console (gb, gba, ps2, psx...)
   [cyan]<texto>[/cyan]            busca no console atual (sem precisar de comando)
   [cyan]/next[/cyan] / [cyan]/prev[/cyan]      pagina os resultados da última busca
-  [cyan]/download <n>[,<n>...][/cyan]  baixa o(s) resultado(s) pelo número mostrado
+  [cyan]/download <n>[,<n>...][/cyan]  baixa o(s) resultado(s) pelo número mostrado (em paralelo)
+  [cyan]/delete <n>[,<n>...][/cyan]  apaga rom(s) baixada(s) + capa associada, pede confirmação
+  [cyan]/scan[/cyan]              varre a pasta de ROMs e busca capa pro que já existe sem capa
   [cyan]/info <n>[/cyan]          nota, gêneros e descrição do resultado (RAWG)
   [cyan]/top[/cyan]               melhores avaliados (RAWG) já cruzados com o catálogo
   [cyan]/clean[/cyan]             lista e apaga downloads incompletos (.partial)
-  [cyan]/config[/cyan]            tela de configurações (pasta, limites)
+  [cyan]/config[/cyan]            tela de configurações (pasta, limites, auto-clear)
   [cyan]/root <pasta>[/cyan]      atalho rápido pra mudar a pasta de ROMs
   [cyan]/help[/cyan]              mostra essa ajuda
   [cyan]/quit[/cyan]              sai
@@ -132,8 +138,12 @@ o progresso pra continuar depois.[/dim]"""
 
 
 def print_banner():
-    console.print(f"\n[bold]Roms Downloader[/bold]  [dim]{len(CONSOLES_ARCHIVE)} consoles · {config.ROMS_ROOT}[/dim]")
-    console.print("[dim]/console <sistema> pra começar · /help pra ver todos os comandos[/dim]")
+    console.print(
+        f"\n[bold]Roms Downloader[/bold]  [dim]{len(CONSOLES_ARCHIVE)} consoles · {config.ROMS_ROOT}[/dim]"
+    )
+    console.print(
+        "[dim]/console <sistema> pra começar · /help pra ver todos os comandos[/dim]"
+    )
     if not os.getenv("RAWG_API_KEY"):
         console.print(
             "[yellow]Aviso:[/yellow] RAWG_API_KEY não configurada — /info, /top e "
@@ -151,6 +161,18 @@ def run_chat():
     last_matches = []
     last_total = 0
     page = 0
+    action_count = 0
+
+    def note_action():
+        """Conta uma ação (busca/download/delete); limpa a tela sozinho a
+        cada N ações se /config tiver auto-clear ligado, pra não virar
+        scroll infinito em sessões longas."""
+        nonlocal action_count
+        action_count += 1
+        if config.AUTO_CLEAR_AFTER and action_count >= config.AUTO_CLEAR_AFTER:
+            console.clear()
+            print_banner()
+            action_count = 0
 
     while True:
         label = f"{current_console} " if current_console else ""
@@ -181,16 +203,30 @@ def run_chat():
         if text == "/back":
             current_console = None
             last_matches, last_total, page = [], 0, 0
-            console.print("[dim]Console desmarcado — use /console pra escolher de novo.[/dim]")
+            console.print(
+                "[dim]Console desmarcado — use /console pra escolher de novo.[/dim]"
+            )
             continue
 
         if text == "/clean":
             clean_partial_downloads()
             continue
 
+        if text == "/scan":
+            from src.library import scan_library
+
+            with console.status("Escaneando biblioteca e buscando capas faltando..."):
+                total, saved = scan_library()
+            console.print(
+                f"[green]{total} arquivo(s) na biblioteca, {saved} capa(s) nova(s) salva(s).[/green]"
+            )
+            continue
+
         if text == "/top":
             if not current_console:
-                console.print("[yellow]Selecione um console primeiro (/console).[/yellow]")
+                console.print(
+                    "[yellow]Selecione um console primeiro (/console).[/yellow]"
+                )
                 continue
             curated = _build_top_list(current_console, games_cache)
             if curated is None:
@@ -200,16 +236,20 @@ def run_chat():
                 )
                 continue
             if not curated:
-                console.print("[yellow]Nenhum dos melhores avaliados foi encontrado no catálogo.[/yellow]")
+                console.print(
+                    "[yellow]Nenhum dos melhores avaliados foi encontrado no catálogo.[/yellow]"
+                )
                 continue
             last_matches, last_total = curated, len(curated)
             page = 0
-            console.print("[dim]Melhores avaliados (RAWG) disponíveis pra baixar:[/dim]")
+            console.print(
+                "[dim]Melhores avaliados (RAWG) disponíveis pra baixar:[/dim]"
+            )
             show_page(last_matches, page)
             continue
 
         if text.startswith("/console"):
-            arg = text[len("/console"):].strip()
+            arg = text[len("/console") :].strip()
             picked = resolve_console_name(arg) if arg else pick_console()
             if picked:
                 current_console = picked
@@ -224,7 +264,7 @@ def run_chat():
             continue
 
         if text.startswith("/root"):
-            path = text[len("/root"):].strip()
+            path = text[len("/root") :].strip()
             if not path:
                 console.print("[yellow]Uso: /root <pasta>[/yellow]")
                 continue
@@ -241,7 +281,7 @@ def run_chat():
             continue
 
         if text.startswith("/info"):
-            arg = text[len("/info"):].strip()
+            arg = text[len("/info") :].strip()
             if not arg or not last_matches:
                 console.print("[yellow]Uso: /info <n> depois de uma busca.[/yellow]")
                 continue
@@ -257,27 +297,80 @@ def run_chat():
             continue
 
         if text.startswith("/download"):
-            arg = text[len("/download"):].strip()
+            arg = text[len("/download") :].strip()
             if not arg or not last_matches:
-                console.print("[yellow]Uso: /download <n>[,<n>...] depois de uma busca.[/yellow]")
+                console.print(
+                    "[yellow]Uso: /download <n>[,<n>...] depois de uma busca.[/yellow]"
+                )
                 continue
             try:
                 indices = [int(x.strip()) for x in arg.replace(",", " ").split()]
             except ValueError:
-                console.print("[yellow]Use números separados por vírgula ou espaço.[/yellow]")
+                console.print(
+                    "[yellow]Use números separados por vírgula ou espaço.[/yellow]"
+                )
                 continue
             selected = []
             for i in indices:
                 if 1 <= i <= len(last_matches):
                     selected.append(last_matches[i - 1])
                 else:
-                    console.print(f"[yellow]Ignorando #{i} (fora do intervalo).[/yellow]")
+                    console.print(
+                        f"[yellow]Ignorando #{i} (fora do intervalo).[/yellow]"
+                    )
             if selected:
                 download_games(selected)
+                note_action()
+            continue
+
+        if text.startswith("/delete"):
+            arg = text[len("/delete") :].strip()
+            if not arg or not last_matches:
+                console.print(
+                    "[yellow]Uso: /delete <n>[,<n>...] depois de uma busca.[/yellow]"
+                )
+                continue
+            try:
+                indices = [int(x.strip()) for x in arg.replace(",", " ").split()]
+            except ValueError:
+                console.print(
+                    "[yellow]Use números separados por vírgula ou espaço.[/yellow]"
+                )
+                continue
+            selected = []
+            for i in indices:
+                if 1 <= i <= len(last_matches):
+                    selected.append(last_matches[i - 1])
+                else:
+                    console.print(
+                        f"[yellow]Ignorando #{i} (fora do intervalo).[/yellow]"
+                    )
+            if not selected:
+                continue
+            names = ", ".join(g["name"] for g in selected)
+            if not questionary.confirm(
+                f"Apagar {len(selected)} jogo(s) da pasta local: {names}?",
+                default=False,
+            ).ask():
+                console.print("[dim]Cancelado.[/dim]")
+                continue
+            for g in selected:
+                deleted = delete_game(g)
+                if deleted:
+                    console.print(
+                        f"[green]Apagado:[/green] {g['name']} ({', '.join(deleted)})"
+                    )
+                else:
+                    console.print(
+                        f"[yellow]Nada encontrado localmente pra:[/yellow] {g['name']}"
+                    )
+            note_action()
             continue
 
         if text.startswith("/"):
-            console.print(f"[yellow]Comando desconhecido: {text}. /help pra ver a lista.[/yellow]")
+            console.print(
+                f"[yellow]Comando desconhecido: {text}. /help pra ver a lista.[/yellow]"
+            )
             continue
 
         # Texto puro = busca no console atualmente selecionado.
@@ -300,3 +393,4 @@ def run_chat():
             console.print("[yellow]Nenhum resultado.[/yellow]")
             continue
         show_page(last_matches, page)
+        note_action()

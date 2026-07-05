@@ -1,5 +1,6 @@
 import hashlib
 import os
+import shutil
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import unquote
 
@@ -54,7 +55,9 @@ def _download_with_resume(url, local_path, expected_size, progress, task_id):
 
         headers = {"Range": f"bytes={resume_from}-"} if resume_from else {}
         try:
-            with session.get(url, stream=True, timeout=(10, 60), headers=headers) as response:
+            with session.get(
+                url, stream=True, timeout=(10, 60), headers=headers
+            ) as response:
                 if response.status_code == 416:
                     return  # já temos o arquivo completo
                 response.raise_for_status()
@@ -85,7 +88,9 @@ def download_game(game, progress, task_id, dest_root=None):
     dest_root = dest_root or config.ROMS_ROOT
     url = game["link"]
     filename = unquote(os.path.basename(url))
-    dest_dir = os.path.join(dest_root, game.get("folder") or game.get("console", "default"))
+    dest_dir = os.path.join(
+        dest_root, game.get("folder") or game.get("console", "default")
+    )
     os.makedirs(dest_dir, exist_ok=True)
     final_path = os.path.join(dest_dir, filename)
     partial_path = final_path + PARTIAL_SUFFIX
@@ -106,9 +111,15 @@ def download_game(game, progress, task_id, dest_root=None):
         return final_path
 
     try:
-        _download_with_resume(url, partial_path, game.get("size_bytes"), progress, task_id)
+        _download_with_resume(
+            url, partial_path, game.get("size_bytes"), progress, task_id
+        )
     except KeyboardInterrupt:
-        mb = os.path.getsize(partial_path) / (1024 * 1024) if os.path.exists(partial_path) else 0
+        mb = (
+            os.path.getsize(partial_path) / (1024 * 1024)
+            if os.path.exists(partial_path)
+            else 0
+        )
         progress.console.print(
             f"\n[yellow]{game['name'][:40]}: cancelado — {mb:.1f} MB salvos (parcial). "
             f"Baixe de novo depois pra continuar de onde parou, ou rode /clean pra descartar.[/yellow]"
@@ -130,7 +141,9 @@ def download_game(game, progress, task_id, dest_root=None):
     if ext in (".zip", ".7z", ".rar"):
         progress.console.print(f"[dim]Extraindo {filename}...[/]")
         if extract_archive(final_path, dest_dir):
-            progress.console.print(f"[green]{filename}: extraído — pronto pra jogar.[/green]")
+            progress.console.print(
+                f"[green]{filename}: extraído — pronto pra jogar.[/green]"
+            )
         else:
             progress.console.print(
                 f"[bold red]Falha ao extrair {filename}. Arquivo compactado mantido em:"
@@ -152,10 +165,14 @@ def _download_covers(game, progress):
     if not details or not details.get("cover_url"):
         return
 
-    saved = download_covers_for_emulators(details["cover_url"], game["name"], console_name)
+    saved = download_covers_for_emulators(
+        details["cover_url"], game["name"], console_name
+    )
     where = [k for k, v in saved.items() if v]
     if where:
-        progress.console.print(f"[green]{game['name'][:40]}: capa salva ({', '.join(where)}).[/green]")
+        progress.console.print(
+            f"[green]{game['name'][:40]}: capa salva ({', '.join(where)}).[/green]"
+        )
 
 
 def download_games(games):
@@ -179,7 +196,9 @@ def download_games(games):
             progress.start_task(task_id)
             return game, download_game(game, progress, task_id)
 
-        executor = ThreadPoolExecutor(max_workers=max(1, config.MAX_CONCURRENT_DOWNLOADS))
+        executor = ThreadPoolExecutor(
+            max_workers=max(1, config.MAX_CONCURRENT_DOWNLOADS)
+        )
         futures = [executor.submit(_run, game) for game in games]
         try:
             for future in as_completed(futures):
@@ -210,11 +229,15 @@ def clean_partial_downloads():
                 found.append((path, os.path.getsize(path)))
 
     if not found:
-        console.print("[green]Nada pra limpar — nenhum download incompleto encontrado.[/green]")
+        console.print(
+            "[green]Nada pra limpar — nenhum download incompleto encontrado.[/green]"
+        )
         return
 
     total_mb = sum(sz for _, sz in found) / (1024 * 1024)
-    console.print(f"[yellow]{len(found)} download(s) incompleto(s), {total_mb:.1f} MB no total:[/yellow]")
+    console.print(
+        f"[yellow]{len(found)} download(s) incompleto(s), {total_mb:.1f} MB no total:[/yellow]"
+    )
     for path, sz in found:
         name = os.path.basename(path)[: -len(PARTIAL_SUFFIX)]
         console.print(f"  {name}  ({sz / (1024*1024):.1f} MB)")
@@ -223,3 +246,35 @@ def clean_partial_downloads():
         for path, _ in found:
             os.remove(path)
         console.print("[green]Limpo.[/green]")
+
+
+def delete_game(game):
+    """Apaga o(s) arquivo(s) locais do jogo (rom + pasta extraída, se houver)
+    e as capas associadas. Casa pelo nome-base do arquivo, mesmo esquema do
+    dedup de download. Retorna a lista do que foi apagado (vazia se nada
+    encontrado localmente — o jogo pode nunca ter sido baixado)."""
+    from src.metadata_manager import delete_covers
+
+    dest_dir = os.path.join(
+        config.ROMS_ROOT, game.get("folder") or game.get("console", "default")
+    )
+    if not os.path.isdir(dest_dir):
+        return []
+
+    filename = unquote(os.path.basename(game["link"]))
+    base_name = os.path.splitext(filename)[0]
+
+    deleted = []
+    for f in os.listdir(dest_dir):
+        if f.endswith(PARTIAL_SUFFIX) or os.path.splitext(f)[0] != base_name:
+            continue
+        path = os.path.join(dest_dir, f)
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+        else:
+            os.remove(path)
+        deleted.append(f)
+
+    delete_covers(game["name"], game.get("console", ""))
+
+    return deleted

@@ -8,7 +8,10 @@ def test_clean_rom_title_strips_region_and_revision_tags():
 
 
 def test_clean_rom_title_strips_bracket_tags():
-    assert clean_rom_title("[BIOS] Nintendo Game Boy Boot ROM (World).zip") == "Nintendo Game Boy Boot ROM"
+    assert (
+        clean_rom_title("[BIOS] Nintendo Game Boy Boot ROM (World).zip")
+        == "Nintendo Game Boy Boot ROM"
+    )
 
 
 def test_clean_rom_title_empty_input():

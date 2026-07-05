@@ -10,9 +10,30 @@ from src.config import BASE_URL, CONSOLES_ARCHIVE
 from src.mapping import apply_title_term_map, simplify_title
 from src.utils import clean_rom_title, get_http_session
 
-ROM_EXTENSIONS = {".zip", ".7z", ".rar", ".iso", ".chd", ".cue", ".bin",
-                  ".gba", ".gb", ".gbc", ".nes", ".sfc", ".smc", ".n64",
-                  ".z64", ".v64", ".nds", ".gg", ".md", ".sms", ".pbp", ".cso"}
+ROM_EXTENSIONS = {
+    ".zip",
+    ".7z",
+    ".rar",
+    ".iso",
+    ".chd",
+    ".cue",
+    ".bin",
+    ".gba",
+    ".gb",
+    ".gbc",
+    ".nes",
+    ".sfc",
+    ".smc",
+    ".n64",
+    ".z64",
+    ".v64",
+    ".nds",
+    ".gg",
+    ".md",
+    ".sms",
+    ".pbp",
+    ".cso",
+}
 
 
 def format_size(size_bytes):
@@ -20,9 +41,9 @@ def format_size(size_bytes):
         size_bytes = int(size_bytes)
     except (TypeError, ValueError):
         return "? MB"
-    if size_bytes >= 1024 ** 3:
+    if size_bytes >= 1024**3:
         return f"{size_bytes / 1024**3:.2f} GiB"
-    elif size_bytes >= 1024 ** 2:
+    elif size_bytes >= 1024**2:
         return f"{size_bytes / 1024**2:.2f} MiB"
     elif size_bytes >= 1024:
         return f"{size_bytes / 1024:.2f} KiB"
@@ -36,9 +57,9 @@ def parse_size_string(size_str):
             value = float(parts[0].replace(",", "."))
             unit = parts[1].lower()
             if unit.startswith("gib"):
-                return int(value * 1024 ** 3)
+                return int(value * 1024**3)
             elif unit.startswith("gb"):
-                return int(value * 1000 ** 3)
+                return int(value * 1000**3)
             elif unit.startswith("mib"):
                 return int(value * 1024 * 1024)
             elif unit.startswith("mb"):
@@ -81,7 +102,9 @@ def get_archive_item_stats(identifier):
                 "num_reviews": doc.get("num_reviews"),
             }
     except Exception as e:
-        logging.error(f"Erro ao buscar estatísticas do archive.org para '{identifier}': {e}")
+        logging.error(
+            f"Erro ao buscar estatísticas do archive.org para '{identifier}': {e}"
+        )
     return {"downloads": None, "avg_rating": None, "num_reviews": None}
 
 
@@ -127,22 +150,25 @@ def get_games_for_console(console_name):
             size_bytes = int(f.get("size", 0) or 0)
             size_str = format_size(size_bytes)
             from urllib.parse import quote
+
             encoded_filename = quote(filename, safe="/")
             link = f"{BASE_URL}{identifier}/{encoded_filename}"
 
-            games.append({
-                "name": name,
-                "link": link,
-                "size_bytes": size_bytes,
-                "size_str": size_str,
-                "console": console_name,
-                "folder": _folder,
-                "md5": f.get("md5"),
-                "sha1": f.get("sha1"),
-                "archive_downloads": archive_stats["downloads"],
-                "archive_rating": archive_stats["avg_rating"],
-                "archive_reviews": archive_stats["num_reviews"],
-            })
+            games.append(
+                {
+                    "name": name,
+                    "link": link,
+                    "size_bytes": size_bytes,
+                    "size_str": size_str,
+                    "console": console_name,
+                    "folder": _folder,
+                    "md5": f.get("md5"),
+                    "sha1": f.get("sha1"),
+                    "archive_downloads": archive_stats["downloads"],
+                    "archive_rating": archive_stats["avg_rating"],
+                    "archive_reviews": archive_stats["num_reviews"],
+                }
+            )
 
         logging.info(f"  {identifier}: {len(games)} jogos acumulados")
 
@@ -155,13 +181,17 @@ def get_games_for_console_cached(console_name):
     sem depender de um arquivo JSON solto que dá pra apagar sem querer."""
     cached = db.load_catalog(console_name)
     if cached is not None:
-        logging.info(f"Cache (SQLite) carregada para console '{console_name}': {len(cached)} jogos")
+        logging.info(
+            f"Cache (SQLite) carregada para console '{console_name}': {len(cached)} jogos"
+        )
         return cached
 
     games = get_games_for_console(console_name)
     if games:
         db.save_catalog(console_name, games)
-        logging.info(f"Cache (SQLite) salva para console '{console_name}': {len(games)} jogos")
+        logging.info(
+            f"Cache (SQLite) salva para console '{console_name}': {len(games)} jogos"
+        )
     return games
 
 
@@ -260,7 +290,9 @@ def fetch_top_rated_titles(console_name, limit=30):
         response.raise_for_status()
         results = response.json().get("results", [])
     except requests.exceptions.RequestException as e:
-        logging.error(f"Erro ao buscar melhores jogos (RAWG) para '{console_name}': {e}")
+        logging.error(
+            f"Erro ao buscar melhores jogos (RAWG) para '{console_name}': {e}"
+        )
         return []
 
     titles = []

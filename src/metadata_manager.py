@@ -7,7 +7,9 @@ import requests
 
 from src.utils import find_retroarch
 
-PCSX2_COVERS_FOLDER = os.path.join(os.path.expanduser("~"), "Documents", "PCSX2", "covers")
+PCSX2_COVERS_FOLDER = os.path.join(
+    os.path.expanduser("~"), "Documents", "PCSX2", "covers"
+)
 
 # Nome exato da pasta de sistema usada pelo repositório oficial de thumbnails
 # do RetroArch (libretro-thumbnails) — precisa bater com isso pra aparecer.
@@ -72,6 +74,50 @@ def _retroarch_thumbnails_root():
     return os.path.join(os.path.dirname(exe), "thumbnails")
 
 
+_COVER_EXTS = (".jpg", ".jpeg", ".png")
+
+
+def _cover_base_paths(game_title, console_name):
+    """Caminho (sem extensão) de onde a capa de cada emulador vai/já está,
+    pra download/checagem/remoção usarem o mesmo cálculo. Chave ausente do
+    dict = esse emulador não se aplica (console errado ou não encontrado)."""
+    bases = {}
+    if console_name == "Sony PlayStation 2 (PS2)":
+        bases["pcsx2"] = os.path.join(
+            PCSX2_COVERS_FOLDER, sanitize_filename(game_title)
+        )
+
+    system_dir = RETROARCH_THUMB_SYSTEM_DIRS.get(console_name)
+    thumbs_root = _retroarch_thumbnails_root()
+    if system_dir and thumbs_root:
+        bases["retroarch"] = os.path.join(
+            thumbs_root,
+            system_dir,
+            "Named_Boxarts",
+            _sanitize_retroarch_thumb_name(game_title),
+        )
+
+    return bases
+
+
+def covers_exist(game_title, console_name):
+    """Diz se a capa já foi salva antes pra esse jogo, sem baixar nada —
+    usado pelo /scan pra não gastar chamada RAWG em jogo que já tem capa."""
+    result = {"pcsx2": False, "retroarch": False}
+    for key, base in _cover_base_paths(game_title, console_name).items():
+        result[key] = any(os.path.exists(base + ext) for ext in _COVER_EXTS)
+    return result
+
+
+def delete_covers(game_title, console_name):
+    """Apaga as capas salvas (PCSX2/RetroArch) associadas ao título, se existirem."""
+    for base in _cover_base_paths(game_title, console_name).values():
+        for ext in _COVER_EXTS:
+            path = base + ext
+            if os.path.exists(path):
+                os.remove(path)
+
+
 def download_covers_for_emulators(cover_url, game_title, console_name):
     """
     Baixa a capa uma única vez e distribui pro formato/local que cada emulador
@@ -96,31 +142,16 @@ def download_covers_for_emulators(cover_url, game_title, console_name):
         return result
 
     ext = os.path.splitext(cover_url.split("?")[0])[-1].lower()
-    if ext not in (".jpg", ".jpeg", ".png"):
+    if ext not in _COVER_EXTS:
         ext = ".jpg"
 
-    if console_name == "Sony PlayStation 2 (PS2)":
+    for key, base in _cover_base_paths(game_title, console_name).items():
         try:
-            os.makedirs(PCSX2_COVERS_FOLDER, exist_ok=True)
-            path = os.path.join(PCSX2_COVERS_FOLDER, f"{sanitize_filename(game_title)}{ext}")
-            with open(path, "wb") as f:
+            os.makedirs(os.path.dirname(base), exist_ok=True)
+            with open(f"{base}{ext}", "wb") as f:
                 f.write(image_bytes)
-            result["pcsx2"] = True
+            result[key] = True
         except OSError as e:
-            logging.error(f"Erro ao salvar capa PCSX2 de '{game_title}': {e}")
-
-    system_dir = RETROARCH_THUMB_SYSTEM_DIRS.get(console_name)
-    thumbs_root = _retroarch_thumbnails_root()
-    if system_dir and thumbs_root:
-        try:
-            dest_dir = os.path.join(thumbs_root, system_dir, "Named_Boxarts")
-            os.makedirs(dest_dir, exist_ok=True)
-            safe_title = _sanitize_retroarch_thumb_name(game_title)
-            path = os.path.join(dest_dir, f"{safe_title}{ext}")
-            with open(path, "wb") as f:
-                f.write(image_bytes)
-            result["retroarch"] = True
-        except OSError as e:
-            logging.error(f"Erro ao salvar thumbnail RetroArch de '{game_title}': {e}")
+            logging.error(f"Erro ao salvar capa ({key}) de '{game_title}': {e}")
 
     return result

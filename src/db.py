@@ -8,8 +8,7 @@ DB_PATH = os.path.join(CACHE_FOLDER, "roms_downloader.db")
 
 def _connect():
     conn = sqlite3.connect(DB_PATH)
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS games (
             console TEXT NOT NULL,
             name TEXT NOT NULL,
@@ -24,8 +23,7 @@ def _connect():
             archive_reviews INTEGER,
             PRIMARY KEY (console, name)
         )
-        """
-    )
+        """)
     existing_cols = {row[1] for row in conn.execute("PRAGMA table_info(games)")}
     for col, col_type in (
         ("archive_downloads", "INTEGER"),

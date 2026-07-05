@@ -69,7 +69,9 @@ def extract_zip(zip_path, extract_to):
             for member in zip_ref.namelist():
                 dest = os.path.realpath(os.path.join(extract_to, member))
                 if dest != safe_root and not dest.startswith(safe_root + os.sep):
-                    raise ValueError(f"Entrada de zip insegura (path traversal): {member}")
+                    raise ValueError(
+                        f"Entrada de zip insegura (path traversal): {member}"
+                    )
             zip_ref.extractall(extract_to)
         os.remove(zip_path)
         return True
@@ -94,7 +96,9 @@ def extract_7z(archive_path, extract_to):
             for member in archive.getnames():
                 dest = os.path.realpath(os.path.join(extract_to, member))
                 if dest != safe_root and not dest.startswith(safe_root + os.sep):
-                    raise ValueError(f"Entrada de 7z insegura (path traversal): {member}")
+                    raise ValueError(
+                        f"Entrada de 7z insegura (path traversal): {member}"
+                    )
             archive.extractall(path=extract_to)
         os.remove(archive_path)
         return True
@@ -167,7 +171,9 @@ def find_retroarch():
             logging.info(f"RetroArch encontrado em local comum: {p}")
             return p
 
-    logging.warning("RetroArch não encontrado no PATH nem em locais comuns de instalação.")
+    logging.warning(
+        "RetroArch não encontrado no PATH nem em locais comuns de instalação."
+    )
     return None
 
 

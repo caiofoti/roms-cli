@@ -34,7 +34,9 @@ def test_search_games_empty_query_sorts_alphabetically():
 
 
 def test_resolve_console_name_exact_match():
-    assert resolve_console_name("Sony PlayStation 2 (PS2)") == "Sony PlayStation 2 (PS2)"
+    assert (
+        resolve_console_name("Sony PlayStation 2 (PS2)") == "Sony PlayStation 2 (PS2)"
+    )
 
 
 def test_resolve_console_name_fuzzy_match():

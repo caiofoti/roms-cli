@@ -63,7 +63,7 @@ def show_page(matches, page):
     total_pages = max(1, (len(matches) + PAGE_SIZE - 1) // PAGE_SIZE)
     page = max(0, min(page, total_pages - 1))
     start = page * PAGE_SIZE
-    page_items = matches[start:start + PAGE_SIZE]
+    page_items = matches[start : start + PAGE_SIZE]
 
     table = Table(show_header=True, header_style="bold")
     table.add_column("#", width=4)
@@ -84,8 +84,7 @@ def show_page(matches, page):
 def pick_games(matches):
     """Seleção via checkbox — usada só no modo direto (--console/--query) fora do chat."""
     choices = [
-        questionary.Choice(f"{g['name']}  [{g['size_str']}]", value=g)
-        for g in matches
+        questionary.Choice(f"{g['name']}  [{g['size_str']}]", value=g) for g in matches
     ]
     return (
         questionary.checkbox(

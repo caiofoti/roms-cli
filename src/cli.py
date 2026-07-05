@@ -27,7 +27,9 @@ def main():
         "--config", action="store_true", help="Abre a tela de configurações e sai"
     )
     parser.add_argument(
-        "--clean", action="store_true", help="Lista e apaga downloads incompletos (.partial) e sai"
+        "--clean",
+        action="store_true",
+        help="Lista e apaga downloads incompletos (.partial) e sai",
     )
     args = parser.parse_args()
 
