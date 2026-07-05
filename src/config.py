@@ -145,3 +145,15 @@ def set_min_similarity(value):
     global MIN_SIMILARITY
     MIN_SIMILARITY = int(value)
     settings.setValue("min_similarity", MIN_SIMILARITY)
+
+
+MAX_CONCURRENT_DOWNLOADS = int(settings.value("max_concurrent_downloads", 3))
+
+
+def set_max_concurrent_downloads(value):
+    global MAX_CONCURRENT_DOWNLOADS
+    value = int(value)
+    if not (1 <= value <= 10):
+        raise ValueError("Downloads simultâneos deve ser entre 1 e 10.")
+    MAX_CONCURRENT_DOWNLOADS = value
+    settings.setValue("max_concurrent_downloads", MAX_CONCURRENT_DOWNLOADS)

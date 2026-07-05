@@ -1,141 +1,107 @@
 # Roms Downloader
 
-Busca e baixa ROMs por console, direto no terminal — com busca por
-similaridade, verificação de integridade (md5/sha1), extração automática de
-`.zip`/`.7z`/`.rar` e capas baixadas automaticamente pro RetroArch e PCSX2.
+Busca e baixa ROMs por console de forma prática, confiável e objetiva:
+digita o nome do jogo, escolhe, baixa — com verificação de integridade,
+extração automática e capas prontas pro RetroArch/PCSX2, sem passo manual.
 
 ## Consoles suportados
 
-Game Boy, Game Boy Color, Game Boy Advance, NES, SNES, N64, Nintendo DS,
-Master System, Game Gear, Genesis/Mega Drive, PlayStation (PSX),
-PlayStation 2, Dreamcast, PSP. Lista atual com `roms-downloader --list-consoles`.
+GB, GBC, GBA, NES, SNES, N64, Nintendo DS, Master System, Game Gear,
+Genesis/Mega Drive, PSX, PS2, Dreamcast, PSP. Lista atual:
+`roms-downloader --list-consoles`.
 
 ## Instalação
+
+**Recomendado — pipx** (isola o app, expõe o comando globalmente, sem
+precisar ativar venv toda vez):
+
+```bash
+pipx install git+https://github.com/caiofoti/roms-cli.git
+roms-downloader
+```
+
+**Alternativa — venv manual:**
 
 ```bash
 git clone https://github.com/caiofoti/roms-cli.git
 cd roms-cli
 python -m venv venv
-
-# Linux/macOS
-source venv/bin/activate
-# Windows (PowerShell)
-venv\Scripts\Activate.ps1
-
+source venv/bin/activate      # Windows: venv\Scripts\Activate.ps1
 pip install -e .
 ```
 
-No Windows, se aparecer erro de SSL/certificado ao buscar (comum com
-antivírus que faz inspeção de HTTPS, como Norton), o pacote
-`pip-system-certs` já resolve automaticamente — ele já é instalado junto.
+### Dependência de sistema (só pra `.rar`)
 
-## Configuração obrigatória (.env)
+`.zip` e `.7z` funcionam sem nada extra. Pra `.rar` (raro nesses acervos),
+o sistema precisa ter `unrar` ou `7z` instalado:
 
-Sem isso, a busca/download de ROMs funciona, mas **/info, /top e o download
-automático de capas não funcionam**:
+```bash
+# Linux
+sudo apt install unrar
+# macOS
+brew install unrar
+# Windows: 7-Zip já cobre, https://7-zip.org
+```
+
+## Configuração (.env)
+
+Sem isso, busca/download funcionam normal, mas `/info`, `/top` e capa
+automática não:
 
 ```bash
 cp .env.example .env
 ```
 
-Edite `.env` e coloque sua chave gratuita da [RAWG](https://rawg.io/apidocs)
-(cadastro simples, sem cartão):
+Coloque no `.env` sua chave gratuita da [RAWG](https://rawg.io/apidocs):
 
 ```
 RAWG_API_KEY=sua_chave_aqui
 ```
 
-O app avisa na tela inicial e em `/config` se a chave não estiver
-configurada.
+O app avisa na tela inicial e em `/config` se algo não estiver configurado.
 
 ## Uso
 
-Sem argumentos abre o modo **chat interativo** (o jeito recomendado de usar):
+Sem argumentos abre o **chat interativo**:
 
 ```bash
 roms-downloader
 ```
 
-Dentro do chat:
-
 | Comando | O que faz |
 |---|---|
-| `/console <nome>` | escolhe o console (sem nome abre um menu) |
-| `<texto>` | busca no console atual, sem precisar de comando |
-| `/download <n>[,<n>...]` | baixa o(s) resultado(s) pelo número mostrado |
-| `/info <n>` | nota, gêneros e descrição do resultado (via RAWG) |
-| `/top` | melhores avaliados (RAWG) já cruzados com o catálogo |
-| `/next` / `/prev` | pagina os resultados |
-| `/config` | tela de configurações (pasta de ROMs, limites) |
-| `/clean` | lista e apaga downloads incompletos (`.partial`) |
-| `/help` | lista completa de comandos |
-| `/quit` | sai |
+| `/console <nome>` | escolhe o console |
+| `<texto>` | busca no console atual |
+| `/download <n>[,<n>...]` | baixa o(s) resultado(s), em paralelo |
+| `/info <n>` | nota, gêneros, descrição (RAWG) |
+| `/top` | melhores avaliados (RAWG) |
+| `/config` | pasta de ROMs, limites, downloads simultâneos |
+| `/clean` | apaga downloads incompletos |
+| `/help` | lista completa |
 
-Modo direto, sem menus — passa os argumentos e já busca:
+Modo direto, sem chat:
 
 ```bash
 roms-downloader --console "PS2" --query "crash bandicoot"
-roms-downloader --console "SNES" --query "zelda" --yes   # baixa tudo que casar, sem perguntar
-roms-downloader --list-consoles
+roms-downloader --console "SNES" --query "zelda" --yes
 ```
 
-Definir onde as ROMs ficam salvas (cria a pasta de cada console
-automaticamente, pronta pra qualquer emulador apontar pra lá):
+## Depois do download
 
-```bash
-roms-downloader --set-root "D:\Roms"
-```
+1. Hash (md5/sha1) confere contra o valor oficial do archive.org.
+2. `.zip`/`.7z`/`.rar` extraem sozinhos — arquivo compactado some, jogo fica
+   pronto pra abrir.
+3. Capa baixa e salva automaticamente em `Documentos/PCSX2/covers` e/ou
+   `thumbnails/<Sistema>/Named_Boxarts` do RetroArch (detecção automática).
 
-Sem instalar o pacote, dá pra rodar direto por `python run.py` com os
-mesmos argumentos.
-
-## O que acontece depois do download
-
-1. Hash (md5/sha1) é conferido contra o valor oficial do archive.org — se
-   não bater, o terminal avisa antes de você usar o arquivo.
-2. `.zip`/`.7z`/`.rar` são extraídos automaticamente e o arquivo compactado é
-   apagado — o jogo já fica pronto pra abrir no emulador.
-3. A capa é buscada (RAWG) e salva automaticamente:
-   - **PCSX2**: `Documentos/PCSX2/covers/`
-   - **RetroArch**: pasta `thumbnails/<Sistema>/Named_Boxarts/` dentro da
-     instalação encontrada (detecção automática, ou instale em
-     `C:\RetroArch-Win64` / `/usr/bin/retroarch` / local padrão do SO)
-
-## Como funciona a busca
-
-Os nomes digitados não precisam ser exatos — tanto o console quanto o jogo
-usam correspondência aproximada (fuzzy matching). Resultados abaixo de um
-limiar de similaridade são descartados automaticamente.
-
-A coluna "Downloads"/"★" na lista de resultados vem de estatísticas do
-próprio archive.org (nível da coleção/acervo, não por ROM individual — o
-archive.org não expõe isso por arquivo) — serve como sinal de quão usada e
-confiável é a fonte de onde o jogo vem.
-
-## Emuladores recomendados
-
-- **RetroArch** — cobre todos os consoles exceto PS2.
-- **PCSX2** — para PlayStation 2.
-
-Ambos recebem a pasta de ROMs e as capas automaticamente, sem passo manual
-(veja acima).
-
-## Adicionar um novo console
-
-Uma linha em `src/config.py`, dicionário `CONSOLES_ARCHIVE`:
-
-```python
-"Nome do Console": ("nome_da_pasta", ["identificador_no_archive_org"]),
-```
-
-Busca, download, verificação de hash e criação de pasta já funcionam pra
-qualquer console adicionado assim.
+A coluna "Downloads"/"★" vem de estatísticas do próprio archive.org (nível
+do acervo, não por ROM) — sinal de quão usada/confiável é a fonte.
 
 ## Desenvolvimento
 
 ```bash
 pip install -r requirements.txt
-python run.py --help
+pytest
 ```
 
 ## Licença

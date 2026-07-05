@@ -1,5 +1,6 @@
 import hashlib
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import unquote
 
 import questionary
@@ -38,11 +39,12 @@ def _verify_checksum(local_path, game):
     return actual.lower() == expected.lower()
 
 
-def _download_with_resume(url, local_path, expected_size, task_label):
+def _download_with_resume(url, local_path, expected_size, progress, task_id):
     """Baixa com retomada via Range: se a conexão cair no meio (comum com
     servidores do archive.org sob carga), a próxima tentativa continua de
-    onde parou em vez de reiniciar do zero. Ctrl+C propaga pra quem chamou
-    (download_game cuida de deixar o .partial no lugar e avisar)."""
+    onde parou em vez de reiniciar do zero. Progresso é reportado numa task
+    de um Progress compartilhado, pra download_games poder rodar vários ao
+    mesmo tempo com todas as barras visíveis juntas."""
     session = get_http_session()
 
     for attempt in range(1, MAX_DOWNLOAD_ATTEMPTS + 1):
@@ -63,31 +65,23 @@ def _download_with_resume(url, local_path, expected_size, task_label):
 
                 content_length = int(response.headers.get("Content-Length", 0))
                 total = expected_size or (content_length + resume_from) or None
+                progress.update(task_id, total=total, completed=resume_from)
 
-                with Progress(
-                    "[progress.description]{task.description}",
-                    BarColumn(),
-                    DownloadColumn(),
-                    TransferSpeedColumn(),
-                    TimeRemainingColumn(),
-                    console=console,
-                ) as progress:
-                    task = progress.add_task(task_label, total=total, completed=resume_from)
-                    with open(local_path, "ab" if resumed else "wb") as f:
-                        for chunk in response.iter_content(chunk_size=1024 * 64):
-                            f.write(chunk)
-                            progress.update(task, advance=len(chunk))
+                with open(local_path, "ab" if resumed else "wb") as f:
+                    for chunk in response.iter_content(chunk_size=1024 * 64):
+                        f.write(chunk)
+                        progress.update(task_id, advance=len(chunk))
             return
         except RequestException as e:
             if attempt == MAX_DOWNLOAD_ATTEMPTS:
                 raise
-            console.print(
+            progress.console.print(
                 f"[yellow]Conexão caiu (tentativa {attempt}/{MAX_DOWNLOAD_ATTEMPTS}): {e}"
                 f" — retomando de {resume_from / (1024*1024):.1f} MB...[/yellow]"
             )
 
 
-def download_game(game, dest_root=None):
+def download_game(game, progress, task_id, dest_root=None):
     dest_root = dest_root or config.ROMS_ROOT
     url = game["link"]
     filename = unquote(os.path.basename(url))
@@ -107,15 +101,16 @@ def download_game(game, dest_root=None):
         if not f.endswith(PARTIAL_SUFFIX)
     )
     if already_present:
-        console.print(f"[yellow]Já baixado, pulando:[/yellow] {filename}")
+        progress.console.print(f"[yellow]Já baixado, pulando:[/yellow] {filename}")
+        progress.update(task_id, completed=1, total=1)
         return final_path
 
     try:
-        _download_with_resume(url, partial_path, game.get("size_bytes"), game["name"][:40])
+        _download_with_resume(url, partial_path, game.get("size_bytes"), progress, task_id)
     except KeyboardInterrupt:
         mb = os.path.getsize(partial_path) / (1024 * 1024) if os.path.exists(partial_path) else 0
-        console.print(
-            f"\n[yellow]Download cancelado — {mb:.1f} MB salvos (parcial). "
+        progress.console.print(
+            f"\n[yellow]{game['name'][:40]}: cancelado — {mb:.1f} MB salvos (parcial). "
             f"Baixe de novo depois pra continuar de onde parou, ou rode /clean pra descartar.[/yellow]"
         )
         raise
@@ -124,30 +119,30 @@ def download_game(game, dest_root=None):
 
     ok = _verify_checksum(final_path, game)
     if ok is True:
-        console.print("[green]Hash verificado — arquivo íntegro.[/green]")
+        progress.console.print(f"[green]Hash verificado — {filename} íntegro.[/green]")
     elif ok is False:
-        console.print(
-            "[bold red]ATENÇÃO: hash não confere com o archive.org! "
+        progress.console.print(
+            f"[bold red]ATENÇÃO: hash de {filename} não confere com o archive.org! "
             "Arquivo pode estar corrompido ou adulterado.[/bold red]"
         )
 
     ext = os.path.splitext(final_path)[1].lower()
     if ext in (".zip", ".7z", ".rar"):
-        console.print(f"[dim]Extraindo {filename}...[/]")
+        progress.console.print(f"[dim]Extraindo {filename}...[/]")
         if extract_archive(final_path, dest_dir):
-            console.print("[green]Extraído — pronto pra jogar.[/green]")
+            progress.console.print(f"[green]{filename}: extraído — pronto pra jogar.[/green]")
         else:
-            console.print(
-                "[bold red]Falha ao extrair. Arquivo compactado mantido em:"
+            progress.console.print(
+                f"[bold red]Falha ao extrair {filename}. Arquivo compactado mantido em:"
                 f"[/bold red] {final_path}"
             )
 
-    _download_covers(game)
+    _download_covers(game, progress)
 
     return final_path
 
 
-def _download_covers(game):
+def _download_covers(game, progress):
     """Busca a capa (RAWG) e salva no formato de PCSX2/RetroArch, se achar."""
     from src.metadata_manager import download_covers_for_emulators
     from src.scraping import fetch_game_details
@@ -155,28 +150,54 @@ def _download_covers(game):
     console_name = game.get("console", "")
     details = fetch_game_details(game["name"], console_name)
     if not details or not details.get("cover_url"):
-        console.print("[dim]Capa não encontrada (RAWG sem resultado).[/dim]")
         return
 
     saved = download_covers_for_emulators(details["cover_url"], game["name"], console_name)
     where = [k for k, v in saved.items() if v]
     if where:
-        console.print(f"[green]Capa salva ({', '.join(where)}).[/green]")
-    else:
-        console.print("[dim]Capa encontrada mas não salva (emulador não configurado/instalado).[/dim]")
+        progress.console.print(f"[green]{game['name'][:40]}: capa salva ({', '.join(where)}).[/green]")
 
 
 def download_games(games):
-    for game in games:
-        console.print(f"\n{game['name']}")
+    """Baixa vários jogos em paralelo (config.MAX_CONCURRENT_DOWNLOADS de cada
+    vez), com uma barra de progresso por jogo, todas visíveis ao mesmo tempo."""
+    with Progress(
+        "[progress.description]{task.description}",
+        BarColumn(),
+        DownloadColumn(),
+        TransferSpeedColumn(),
+        TimeRemainingColumn(),
+        console=console,
+    ) as progress:
+        task_ids = {
+            id(game): progress.add_task(game["name"][:40], total=None, start=False)
+            for game in games
+        }
+
+        def _run(game):
+            task_id = task_ids[id(game)]
+            progress.start_task(task_id)
+            return game, download_game(game, progress, task_id)
+
+        executor = ThreadPoolExecutor(max_workers=max(1, config.MAX_CONCURRENT_DOWNLOADS))
+        futures = [executor.submit(_run, game) for game in games]
         try:
-            path = download_game(game)
-            console.print(f"[green]✓[/green] {path}")
+            for future in as_completed(futures):
+                try:
+                    game, path = future.result()
+                    progress.console.print(f"[green]✓[/green] {path}")
+                except Exception as e:
+                    progress.console.print(f"[red]✗[/red] {e}")
+            executor.shutdown(wait=True)
         except KeyboardInterrupt:
-            console.print("[yellow]Fila de downloads interrompida.[/yellow]")
-            return
-        except Exception as e:
-            console.print(f"[red]✗[/red] {e}")
+            # Não dá pra matar uma thread no meio da leitura de um chunk —
+            # cancela o que ainda não começou e deixa o que já está baixando
+            # terminar sozinho (fica íntegro, ou vira .partial retomável).
+            progress.console.print(
+                "[yellow]Cancelando fila — downloads já em andamento vão "
+                "terminar sozinhos.[/yellow]"
+            )
+            executor.shutdown(wait=True, cancel_futures=True)
 
 
 def clean_partial_downloads():

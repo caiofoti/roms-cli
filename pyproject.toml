@@ -5,9 +5,6 @@ description = "Busca e download de ROMs por console via terminal, com verificaç
 requires-python = ">=3.9"
 dependencies = [
     "requests",
-    "beautifulsoup4",
-    "lxml",
-    "pyunpack",
     "patool",
     "platformdirs",
     "py7zr",
@@ -28,3 +25,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

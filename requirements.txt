@@ -1,7 +1,4 @@
 requests
-beautifulsoup4
-lxml
-pyunpack
 patool
 platformdirs
 py7zr
@@ -11,3 +8,4 @@ rich
 questionary
 pip-system-certs
 textual
+pytest

@@ -70,6 +70,9 @@ class SettingsApp(App):
             yield Label("Similaridade mínima da busca fuzzy (0-100)")
             yield Input(value=str(config.MIN_SIMILARITY), id="min_sim")
 
+            yield Label("Downloads simultâneos (1-10)")
+            yield Input(value=str(config.MAX_CONCURRENT_DOWNLOADS), id="max_dl")
+
             yield Static("", id="status")
 
             with Horizontal(id="actions"):
@@ -89,6 +92,7 @@ class SettingsApp(App):
         root = self.query_one("#roms_root", Input).value.strip()
         limit = self.query_one("#limit", Input).value.strip()
         min_sim = self.query_one("#min_sim", Input).value.strip()
+        max_dl = self.query_one("#max_dl", Input).value.strip()
 
         if not root:
             status.update("[red]Pasta raiz não pode ficar vazia.[/red]")
@@ -99,11 +103,15 @@ class SettingsApp(App):
         if not min_sim.isdigit() or not (0 <= int(min_sim) <= 100):
             status.update("[red]Similaridade deve ser um número entre 0 e 100.[/red]")
             return
+        if not max_dl.isdigit() or not (1 <= int(max_dl) <= 10):
+            status.update("[red]Downloads simultâneos deve ser um número entre 1 e 10.[/red]")
+            return
 
         if root != config.ROMS_ROOT:
             config.set_roms_root(root)
         config.set_default_result_limit(int(limit))
         config.set_min_similarity(int(min_sim))
+        config.set_max_concurrent_downloads(int(max_dl))
 
         status.update("[green]Configurações salvas.[/green]")
         self.set_timer(0.6, self.exit)

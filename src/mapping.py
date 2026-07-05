@@ -1,4 +1,3 @@
-import logging
 import re
 
 TITLE_TERM_MAP = {

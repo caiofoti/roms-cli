@@ -1,10 +1,8 @@
 import json
 import logging
 import os
-from urllib.parse import unquote, urljoin
 
 import requests
-from bs4 import BeautifulSoup
 from thefuzz import fuzz
 
 from src import db
@@ -130,7 +128,7 @@ def get_games_for_console(console_name):
             size_str = format_size(size_bytes)
             from urllib.parse import quote
             encoded_filename = quote(filename, safe="/")
-            link = f"https://archive.org/download/{identifier}/{encoded_filename}"
+            link = f"{BASE_URL}{identifier}/{encoded_filename}"
 
             games.append({
                 "name": name,
