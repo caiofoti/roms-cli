@@ -1,0 +1,15 @@
+# Ambiente Python
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+
+# Dados do usuário / segredos
+.env
+downloads/
+cache/
+
+# SO
+.DS_Store

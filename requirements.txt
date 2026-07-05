@@ -1,0 +1,13 @@
+requests
+beautifulsoup4
+lxml
+pyunpack
+patool
+platformdirs
+py7zr
+python-dotenv
+thefuzz
+rich
+questionary
+pip-system-certs
+textual

@@ -1,0 +1,30 @@
+[project]
+name = "roms-downloader"
+version = "2.0.0"
+description = "Busca e download de ROMs por console via terminal, com verificação de integridade."
+requires-python = ">=3.9"
+dependencies = [
+    "requests",
+    "beautifulsoup4",
+    "lxml",
+    "pyunpack",
+    "patool",
+    "platformdirs",
+    "py7zr",
+    "python-dotenv",
+    "thefuzz",
+    "rich",
+    "questionary",
+    "pip-system-certs",
+    "textual",
+]
+
+[project.scripts]
+roms-downloader = "src.cli:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["src"]
