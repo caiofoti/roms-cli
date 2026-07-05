@@ -1,4 +1,4 @@
-requests==2.33.1
+requests==2.34.2
 patool==4.0.4
 platformdirs==4.9.6
 py7zr==1.1.3
