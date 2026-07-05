@@ -32,10 +32,19 @@ def _format_downloads(n):
 def _archive_stats_cols(game):
     """Downloads e nota são do item/coleção do archive.org inteiro (não por ROM
     individual — o archive.org não expõe isso por arquivo), servem como sinal
-    de quão usada/confiável é a fonte de onde o jogo vem."""
+    de quão usada/confiável é a fonte de onde o jogo vem — por isso saem
+    repetidas pra todo jogo do mesmo console/acervo.
+
+    Exceção: /top já tem nota real por jogo vinda do RAWG (rating_100, escala
+    0-100) — se estiver presente, mostra ela em vez da nota genérica do
+    acervo (convertida pra escala 0-5 pra bater com a coluna ★)."""
     downloads = _format_downloads(game.get("archive_downloads"))
-    rating = game.get("archive_rating")
-    rating_str = f"{rating:.1f}" if rating is not None else "-"
+    rating_100 = game.get("rating_100")
+    if rating_100 is not None:
+        rating_str = f"{rating_100 / 20:.1f}"
+    else:
+        rating = game.get("archive_rating")
+        rating_str = f"{rating:.1f}" if rating is not None else "-"
     return downloads, rating_str
 
 
