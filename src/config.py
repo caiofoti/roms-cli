@@ -80,43 +80,19 @@ CONSOLES_ARCHIVE = {
     "Sega Genesis/Mega Drive": ("megadrive", ["ni-se-md"]),
     "Sony PlayStation (PSX)": ("psx", ["RedumpSonyPlayStationAmerica20160617"]),
     # "redump_ps2" sozinho é um acervo curado incompleto (~670 jogos, faltam
-    # franquias inteiras, ex: Tekken). Usa o set oficial completo do
-    # Redump.info, dividido por letra (32 partes, milhares de jogos).
+    # franquias inteiras, ex: Tekken). O set completo oficial do Redump.info
+    # (sony_playstation2_a..z) tem acesso restrito no archive.org — a lista
+    # de arquivos funciona, mas todo download dá 401. Usa o set "1G1R" (uma
+    # versão por jogo, formato .chd nativo do PCSX2/RetroArch) — sem
+    # restrição, ~4600 arquivos, cobre as franquias principais.
     "Sony PlayStation 2 (PS2)": (
         "ps2",
         [
-            "sony_playstation2_numberssymbols",
-            "sony_playstation2_a",
-            "sony_playstation2_b",
-            "sony_playstation2_c",
-            "sony_playstation2_d_part1",
-            "sony_playstation2_d_part2",
-            "sony_playstation2_e",
-            "sony_playstation2_f",
-            "sony_playstation2_g",
-            "sony_playstation2_h",
-            "sony_playstation2_i",
-            "sony_playstation2_j",
-            "sony_playstation2_k",
-            "sony_playstation2_l",
-            "sony_playstation2_m_part1",
-            "sony_playstation2_m_part2",
-            "sony_playstation2_n",
-            "sony_playstation2_o_part1",
-            "sony_playstation2_o_part2",
-            "sony_playstation2_p",
-            "sony_playstation2_q",
-            "sony_playstation2_r",
-            "sony_playstation2_s_part1",
-            "sony_playstation2_s_part2",
-            "sony_playstation2_s_part3",
-            "sony_playstation2_s_part4",
-            "sony_playstation2_t",
-            "sony_playstation2_u",
-            "sony_playstation2_v",
-            "sony_playstation2_w",
-            "sony_playstation2_x",
-            "sony_playstation2_z",
+            "PS2-1G1R-P1-1G1R",
+            "PS2-1G1R-P2-MattB258",
+            "PS2-1G1R-MattB258-P3",
+            "PS2-1G1R-P4-MattB258",
+            "PS2-1G1R-P5-MattB258",
         ],
     ),
     "Sega Dreamcast": ("dreamcast", ["sega-dreamcast-redump-collection"]),
