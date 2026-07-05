@@ -35,10 +35,17 @@ def _archive_stats_cols(game):
     de quão usada/confiável é a fonte de onde o jogo vem — por isso saem
     repetidas pra todo jogo do mesmo console/acervo.
 
-    Exceção: /top já tem nota real por jogo vinda do RAWG (rating_100, escala
-    0-100) — se estiver presente, mostra ela em vez da nota genérica do
-    acervo (convertida pra escala 0-5 pra bater com a coluna ★)."""
-    downloads = _format_downloads(game.get("archive_downloads"))
+    Exceção: /top já tem dado real por jogo vindo do RAWG — rawg_added
+    (quantos usuários têm o jogo na lista deles no RAWG, proxy de
+    popularidade por jogo) e rating_100 (nota, escala 0-100) — se
+    presentes, mostram no lugar do dado genérico do acervo (rating_100
+    convertido pra escala 0-5 pra bater com a coluna ★)."""
+    rawg_added = game.get("rawg_added")
+    downloads = (
+        _format_downloads(rawg_added)
+        if rawg_added is not None
+        else _format_downloads(game.get("archive_downloads"))
+    )
     rating_100 = game.get("rating_100")
     if rating_100 is not None:
         rating_str = f"{rating_100 / 20:.1f}"

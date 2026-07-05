@@ -11,6 +11,24 @@ from src.scraping import get_games_for_console_cached
 from src.search import CONSOLE_ALIASES, pick_console, resolve_console_name, search_games
 
 
+def _parse_indices(arg):
+    """Aceita números soltos, faixas (1-5) e listas misturadas, separados por
+    vírgula ou espaço: "1-3,5,8-10" -> [1,2,3,5,8,9,10]. Índices de resultado
+    são sempre positivos, então "-" em qualquer posição do token é separador
+    de faixa. Levanta ValueError se algum token não for número nem faixa."""
+    indices = []
+    for token in arg.replace(",", " ").split():
+        if "-" in token:
+            start_s, end_s = token.split("-", 1)
+            start, end = int(start_s), int(end_s)
+            if start > end:
+                start, end = end, start
+            indices.extend(range(start, end + 1))
+        else:
+            indices.append(int(token))
+    return indices
+
+
 def _load_games(console_name):
     with console.status(f"Carregando catálogo de {console_name}..."):
         try:
@@ -75,6 +93,7 @@ def _build_top_list(console_name, games_cache):
         if matches and matches[0]["name"] not in seen:
             game = dict(matches[0])
             game["rating_100"] = t["rating_100"]
+            game["rawg_added"] = t.get("rawg_added")
             curated.append(game)
             seen.add(game["name"])
 
@@ -122,8 +141,8 @@ HELP_TEXT = """[bold]Comandos:[/bold]
   [cyan]/consoles[/cyan]          lista os aliases de console (gb, gba, ps2, psx...)
   [cyan]<texto>[/cyan]            busca no console atual (sem precisar de comando)
   [cyan]/next[/cyan] / [cyan]/prev[/cyan]      pagina os resultados da última busca
-  [cyan]/download <n>[,<n>...][/cyan]  baixa o(s) resultado(s) pelo número mostrado (em paralelo)
-  [cyan]/delete <n>[,<n>...][/cyan]  apaga rom(s) baixada(s) + capa associada, pede confirmação
+  [cyan]/download <n>[,<n>...|<n>-<n>][/cyan]  baixa por número, lista ou faixa (ex: 1-10), em paralelo
+  [cyan]/delete <n>[,<n>...|<n>-<n>][/cyan]  apaga rom(s) baixada(s) + capa associada, pede confirmação
   [cyan]/scan[/cyan]              varre a pasta de ROMs e busca capa pro que já existe sem capa
   [cyan]/info <n>[/cyan]          nota, gêneros e descrição do resultado (RAWG)
   [cyan]/top[/cyan]               melhores avaliados (RAWG) já cruzados com o catálogo
@@ -300,14 +319,14 @@ def run_chat():
             arg = text[len("/download") :].strip()
             if not arg or not last_matches:
                 console.print(
-                    "[yellow]Uso: /download <n>[,<n>...] depois de uma busca.[/yellow]"
+                    "[yellow]Uso: /download <n>[,<n>...] ou <n>-<n> (faixa) depois de uma busca.[/yellow]"
                 )
                 continue
             try:
-                indices = [int(x.strip()) for x in arg.replace(",", " ").split()]
+                indices = _parse_indices(arg)
             except ValueError:
                 console.print(
-                    "[yellow]Use números separados por vírgula ou espaço.[/yellow]"
+                    "[yellow]Use números (ex: 1,3,5) ou faixas (ex: 1-10), separados por vírgula ou espaço.[/yellow]"
                 )
                 continue
             selected = []
@@ -327,14 +346,14 @@ def run_chat():
             arg = text[len("/delete") :].strip()
             if not arg or not last_matches:
                 console.print(
-                    "[yellow]Uso: /delete <n>[,<n>...] depois de uma busca.[/yellow]"
+                    "[yellow]Uso: /delete <n>[,<n>...] ou <n>-<n> (faixa) depois de uma busca.[/yellow]"
                 )
                 continue
             try:
-                indices = [int(x.strip()) for x in arg.replace(",", " ").split()]
+                indices = _parse_indices(arg)
             except ValueError:
                 console.print(
-                    "[yellow]Use números separados por vírgula ou espaço.[/yellow]"
+                    "[yellow]Use números (ex: 1,3,5) ou faixas (ex: 1-10), separados por vírgula ou espaço.[/yellow]"
                 )
                 continue
             selected = []

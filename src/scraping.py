@@ -302,7 +302,13 @@ def fetch_top_rated_titles(console_name, limit=30):
         rating = g.get("rating")
         rating_100 = metacritic or (round(rating * 20) if rating else None)
         if rating_100 is not None:
-            titles.append({"name": g.get("name"), "rating_100": rating_100})
+            titles.append(
+                {
+                    "name": g.get("name"),
+                    "rating_100": rating_100,
+                    "rawg_added": g.get("added"),
+                }
+            )
 
     titles.sort(key=lambda t: t["rating_100"], reverse=True)
     return titles

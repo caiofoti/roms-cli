@@ -78,8 +78,8 @@ roms-downloader
 |---|---|
 | `/console <nome>` | escolhe o console |
 | `<texto>` | busca no console atual |
-| `/download <n>[,<n>...]` | baixa o(s) resultado(s), em paralelo |
-| `/delete <n>[,<n>...]` | apaga rom(s) local(is) + capa, com confirmação |
+| `/download <n>[,<n>...\|<n>-<n>]` | baixa por número, lista ou faixa (ex: `1-10`), em paralelo |
+| `/delete <n>[,<n>...\|<n>-<n>]` | apaga rom(s) local(is) + capa, com confirmação |
 | `/scan` | varre a pasta de ROMs e completa capa do que já existe sem uma |
 | `/info <n>` | nota, gêneros, descrição (RAWG) |
 | `/top` | melhores avaliados (RAWG) |
