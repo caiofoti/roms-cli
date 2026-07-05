@@ -31,6 +31,7 @@ def _diagnostics_text():
 
     lines.append(f"Capas PCSX2: {PCSX2_COVERS_FOLDER}")
 
+    env_path = os.path.join(config.USER_CONFIG_DIR, ".env")
     rawg_key = os.getenv("RAWG_API_KEY")
     if rawg_key:
         lines.append(
@@ -38,10 +39,10 @@ def _diagnostics_text():
         )
     else:
         lines.append(
-            "RAWG_API_KEY: [red]não configurada[/red] — copie .env.example para .env "
-            "e coloque sua chave gratuita de https://rawg.io/apidocs, senão /info, "
-            "/top e as capas não vão funcionar."
+            "RAWG_API_KEY: [red]não configurada[/red] — crie um arquivo .env com "
+            "RAWG_API_KEY=sua_chave (grátis em https://rawg.io/apidocs) em:"
         )
+        lines.append(f"  {env_path}")
 
     return "\n".join(lines)
 

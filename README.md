@@ -46,24 +46,25 @@ brew install unrar
 ## Configuração (.env)
 
 Sem isso, busca/download funcionam normal, mas `/info`, `/top` e capa
-automática não:
+automática não. Precisa de 1 chave gratuita da [RAWG](https://rawg.io/apidocs)
+(cadastro simples, sem cartão).
+
+**Se instalou via venv manual** (tem o repo clonado):
 
 ```bash
 cp .env.example .env
+# edite .env e coloque: RAWG_API_KEY=sua_chave_aqui
 ```
 
-Coloque no `.env` sua chave gratuita da [RAWG](https://rawg.io/apidocs):
+**Se instalou via pipx** (sem repo local): rode `roms-downloader --config` —
+a tela mostra o caminho exato onde criar o `.env` (pasta de configuração
+padrão do seu SO). Crie o arquivo lá com uma linha:
 
 ```
 RAWG_API_KEY=sua_chave_aqui
 ```
 
-O app avisa na tela inicial e em `/config` se algo não estiver configurado.
-
-Instalou via pipx e não tem um `.env` num diretório fixo pra rodar de dentro
-dele? O app também lê `.env` da pasta de configuração padrão do seu SO (a
-mesma onde fica `settings.json`) — copie o `.env` pra lá se for rodar
-`roms-downloader` de qualquer lugar.
+O app avisa na tela inicial e em `/config` se a chave não estiver configurada.
 
 ## Uso
 

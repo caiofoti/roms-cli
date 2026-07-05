@@ -14,7 +14,7 @@ logging.basicConfig(
 )
 
 APP_NAME = "RomsDownloader"
-AUTHOR_NAME = "YourAppNameOrCompany"
+AUTHOR_NAME = "roms-cli"
 
 if platformdirs:
     USER_DATA_DIR = platformdirs.user_data_dir(APP_NAME, AUTHOR_NAME)
