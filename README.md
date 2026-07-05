@@ -73,11 +73,16 @@ roms-downloader
 | `/console <nome>` | escolhe o console |
 | `<texto>` | busca no console atual |
 | `/download <n>[,<n>...]` | baixa o(s) resultado(s), em paralelo |
+| `/delete <n>[,<n>...]` | apaga rom(s) local(is) + capa, com confirmação |
+| `/scan` | varre a pasta de ROMs e completa capa do que já existe sem uma |
 | `/info <n>` | nota, gêneros, descrição (RAWG) |
 | `/top` | melhores avaliados (RAWG) |
-| `/config` | pasta de ROMs, limites, downloads simultâneos |
+| `/config` | pasta de ROMs, limites, downloads simultâneos, auto-clear |
 | `/clean` | apaga downloads incompletos |
 | `/help` | lista completa |
+
+Sessões longas viram scroll infinito rápido — configure auto-clear em
+`/config` (limpa a tela sozinho a cada N ações) se preferir.
 
 Modo direto, sem chat:
 
