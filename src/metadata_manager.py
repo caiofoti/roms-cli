@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import sys
 
 import requests
 
@@ -49,6 +50,22 @@ def _sanitize_retroarch_thumb_name(title):
 
 
 def _retroarch_thumbnails_root():
+    """RetroArch guarda config/thumbnails ao lado do executável só na
+    instalação portátil (comum no Windows). Instalação nativa no Linux
+    (~/.config/retroarch) e no macOS (~/Library/Application Support/RetroArch)
+    guarda em outro lugar — testa o padrão do SO primeiro, cai pro lado do
+    executável se não existir (cobre instalação portátil em qualquer SO)."""
+    if sys.platform.startswith("linux"):
+        candidate_root = os.path.join(os.path.expanduser("~"), ".config", "retroarch")
+        if os.path.isdir(candidate_root):
+            return os.path.join(candidate_root, "thumbnails")
+    elif sys.platform.startswith("darwin"):
+        candidate_root = os.path.join(
+            os.path.expanduser("~"), "Library", "Application Support", "RetroArch"
+        )
+        if os.path.isdir(candidate_root):
+            return os.path.join(candidate_root, "thumbnails")
+
     exe = find_retroarch()
     if not exe:
         return None
